@@ -95,9 +95,12 @@ class BencodeParser:
 
 
 
-def str_bstr(data:bytes):
-    buf = bytes(str(len(data)),'utf-8')+b':'+data
+def str_bstr(data:str):
+    buf = bytes(str(len(data)),'utf-8')+b':'+bytes(data,'utf-8')
     return buf
+
+def bytes_bstr(data:bytes):
+    return bytes(str(len(data)),'utf-8')+b':'+data
 
 def int_bint(data:int):
     return b'i'+bytes(str(data),'ascii')+b'e'
@@ -111,6 +114,8 @@ def list_blist(data:list):
             to_return += int_bint(element)
         elif type(element) == str:
             to_return += str_bstr(element)
+        elif type(element) == bytes:
+            to_return += bytes_bstr(element)
         elif type(element) == list:
             to_return += list_blist(element)
         elif type(element) == dict:
@@ -121,21 +126,44 @@ def list_blist(data:list):
 def dict_bdict(data:dict):
     to_return = b'd'
     for key in sorted(data.keys()):
-        to_return += str_bstr(to_return)
+        to_return += str_bstr(key)
         if type(data[key]) == int:
             to_return += int_bint(data[key])
         elif type(data[key]) == str:
             to_return += str_bstr(data[key])
+        elif type(data[key]) == bytes:
+            to_return += bytes_bstr(data[key])
         elif type(data[key]) == list:
             to_return += list_blist(data[key])
         elif type(data[key]) == dict:
             to_return += dict_bdict(data[key])
     return to_return+b'e'
 
+def encode(data):
+    to_return = b''
+    if type(data) == int:
+        to_return += int_bint(data)
+    elif type(data) == str:
+        to_return += str_bstr(data)
+    elif type(data) == bytes:
+        to_return += bytes_bstr(data)
+    elif type(data) == list:
+        to_return += list_blist(data)
+    elif type(data) == dict:
+        to_return += dict_bdict(data)
+    return to_return
+
 
 if __name__ == '__main__':
     
     ben = BencodeParser('test.torrent')
     data = ben.parse_Bencode()
-    print(data)
+    file = open('test.torrent','rb')
+    original_data = file.read()
+    file.close()
+    encoded_data = encode(data[0])
+    ben = BencodeParser(encoded_data,filename = False)
+    data_check = ben.parse_Bencode()
+    print(original_data == encoded_data)
+    #print(data)
 
