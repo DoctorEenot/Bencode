@@ -49,12 +49,14 @@ class BencodeParser:
         while data != b':':
             size += data
             data = self.file.read(1)
+            if not data:
+                raise Exception('Problem with string')
         return self.file.read(int(size))
 
     def parse_DInt(self)->int:
         buf = b''
         data = self.file.read(1)
-        while data != b'e':
+        while data != b'e' and data:
             buf += data
             data = self.file.read(1)
         return int(buf)
@@ -72,6 +74,8 @@ class BencodeParser:
             else:
                 to_return.append(self.parse_BString(data))
             data = self.file.read(1)
+            if not data:
+                raise Exception('Malformed list')
         return to_return
 
     def parse_BDict(self):
@@ -89,8 +93,10 @@ class BencodeParser:
                 item = self.parse_BList()
             else:
                 item = self.parse_BString(data)
+            
             to_return[str(key,encoding='utf-8')] = item
             data = self.file.read(1)
+
         return to_return
 
 
@@ -100,7 +106,7 @@ def str_bstr(data:str):
     return buf
 
 def bytes_bstr(data:bytes):
-    return bytes(str(len(data)),'utf-8')+b':'+data
+    return bytes(str(len(data)),'ascii')+b':'+data
 
 def int_bint(data:int):
     return b'i'+bytes(str(data),'ascii')+b'e'
@@ -156,14 +162,9 @@ def encode(data):
 
 if __name__ == '__main__':
     
-    ben = BencodeParser('test.torrent')
-    data = ben.parse_Bencode()
-    file = open('test.torrent','rb')
-    original_data = file.read()
-    file.close()
-    encoded_data = encode(data[0])
-    ben = BencodeParser(encoded_data,filename = False)
-    data_check = ben.parse_Bencode()
-    print(original_data == encoded_data)
-    #print(data)
+    data = b'd1:rd2:id20:E\xbd\x1e\x8f\xc1\xd9\xe4\x07\x9f\xba\xd8\xac\xbf\x95\xd2\xa8@6\x16\xff5:token8:5\xa4\xf6\xbd\xd3\xe3\xa9\x9ce1:t4:\x1bw-}1:y1:red'
+    data = b'd1:d5:abcdte'
+    pars = BencodeParser(data,False)
+    enc = pars.parse_Bencode()
+    print()
 
